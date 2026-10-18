@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שעון החלל</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Heebo:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --glow: #7fd8ff;
+    --glow2: #c58bff;
+    --text: #eaf6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #02010a; color: var(--text); }
+  body { font-family: 'Heebo', sans-serif; }
+
+  canvas#space { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Nebula clouds */
+  .nebula {
+    position: fixed; border-radius: 50%; filter: blur(80px); opacity: .55;
+    mix-blend-mode: screen; pointer-events: none;
+    animation: drift 40s ease-in-out infinite alternate;
+  }
+  .n1 { width: 60vmax; height: 45vmax; top: -15vmax; left: -15vmax;
+        background: radial-gradient(circle, #5b2bd6 0%, #2a0e6b 45%, transparent 70%); }
+  .n2 { width: 55vmax; height: 40vmax; bottom: -18vmax; right: -12vmax;
+        background: radial-gradient(circle, #0e7fb8 0%, #08325e 45%, transparent 70%);
+        animation-duration: 55s; animation-direction: alternate-reverse; }
+  .n3 { width: 35vmax; height: 30vmax; top: 30%; right: 20%;
+        background: radial-gradient(circle, #c2367a 0%, #4a0f3a 50%, transparent 72%);
+        opacity: .3; animation-duration: 70s; }
+  @keyframes drift {
+    from { transform: translate(0,0) scale(1) rotate(0deg); }
+    to   { transform: translate(4vmax,3vmax) scale(1.15) rotate(12deg); }
+  }
+
+  /* Planet with ring */
+  .planet-wrap {
+    position: fixed; width: 22vmin; height: 22vmin; bottom: 8vh; left: 7vw;
+    animation: float 12s ease-in-out infinite; pointer-events: none;
+  }
+  .planet {
+    position: absolute; inset: 0; border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 30%, #ffd9a8 0%, #e48a4b 35%, #8a3a2a 65%, #1c0a12 100%);
+    box-shadow: 0 0 60px rgba(255,150,90,.35), inset -2.5vmin -2.5vmin 5vmin rgba(0,0,0,.75);
+    overflow: hidden;
+  }
+  .planet::before {
+    content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(-20deg, transparent 0 1.2vmin, rgba(120,40,20,.25) 1.2vmin 2vmin);
+    border-radius: 50%; animation: spin 30s linear infinite;
+  }
+  .ring {
+    position: absolute; left: -45%; top: 38%; width: 190%; height: 24%;
+    border-radius: 50%; border: .9vmin solid rgba(255,220,180,.55);
+    box-shadow: 0 0 20px rgba(255,200,150,.35), inset 0 0 12px rgba(255,200,150,.3);
+    transform: rotate(-18deg);
+  }
+  .ring.back { z-index: -1; }
+  .ring.front { clip-path: inset(50% 0 0 0); }
+  @keyframes float { 50% { transform: translateY(-2vmin) rotate(2deg); } }
+  @keyframes spin { to { transform: translateX(-30%); } }
+
+  /* Small moon */
+  .moon {
+    position: fixed; width: 6vmin; height: 6vmin; top: 12vh; right: 10vw; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f2f4ff, #9aa3c4 55%, #2c3048 100%);
+    box-shadow: 0 0 30px rgba(200,210,255,.4), inset -1vmin -1vmin 2vmin rgba(0,0,0,.6);
+    animation: float 9s ease-in-out infinite reverse; pointer-events: none;
+  }
+
+  /* Clock */
+  main {
+    position: relative; z-index: 2; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2vmin; text-align: center; padding: 0 16px;
+  }
+  .orbit {
+    position: absolute; width: min(92vw, 120vmin); aspect-ratio: 3 / 1.2;
+    border: 1px solid rgba(127,216,255,.18); border-radius: 50%;
+    transform: rotate(-8deg); pointer-events: none;
+  }
+  .orbit::after {
+    content: ""; position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: #fff; box-shadow: 0 0 12px 4px var(--glow);
+    offset-path: border-box; offset-distance: 0%;
+    animation: orbit 14s linear infinite;
+  }
+  @keyframes orbit { to { offset-distance: 100%; } }
+
+  .label {
+    font-family: 'Orbitron', sans-serif; font-weight: 500; letter-spacing: .6em;
+    font-size: clamp(10px, 1.6vmin, 16px); color: rgba(200,230,255,.7); text-transform: uppercase;
+    direction: ltr;
+  }
+  .time {
+    direction: ltr; font-family: 'Orbitron', sans-serif; font-weight: 800;
+    font-size: clamp(56px, 17vmin, 240px); line-height: 1; letter-spacing: .04em;
+    background: linear-gradient(180deg, #ffffff 0%, #bfe9ff 45%, #8e7bff 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(127,216,255,.55)) drop-shadow(0 0 50px rgba(197,139,255,.35));
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .time .colon { animation: blink 1s steps(1) infinite; margin: 0 .05em; }
+  .time .sec { font-size: .42em; vertical-align: .95em; margin-inline-start: .15em; opacity: .9; }
+  @keyframes blink { 50% { opacity: .25; } }
+
+  .date {
+    font-size: clamp(16px, 3vmin, 32px); font-weight: 300; color: rgba(225,240,255,.85);
+    letter-spacing: .05em; text-shadow: 0 0 12px rgba(127,216,255,.4);
+  }
+  .bar {
+    width: min(70vw, 520px); height: 3px; border-radius: 3px; background: rgba(255,255,255,.1);
+    overflow: hidden; direction: ltr;
+  }
+  .bar span {
+    display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--glow2), var(--glow));
+    box-shadow: 0 0 10px var(--glow); transition: width .25s linear;
+  }
+</style>
+</head>
+<body>
+  <canvas id="space"></canvas>
+  <div class="nebula n1"></div>
+  <div class="nebula n2"></div>
+  <div class="nebula n3"></div>
+  <div class="moon"></div>
+  <div class="planet-wrap">
+    <div class="ring back"></div>
+    <div class="planet"></div>
+    <div class="ring front"></div>
+  </div>
+
+  <main>
+    <div class="orbit"></div>
+    <div class="label">Stardate · Local Time</div>
+    <div class="time" id="time">00<span class="colon">:</span>00<span class="sec">00</span></div>
+    <div class="date" id="date"></div>
+    <div class="bar"><span id="bar"></span></div>
+  </main>
+
+<script>
+  // ---------- Clock ----------
+  const timeEl = document.getElementById('time');
+  const dateEl = document.getElementById('date');
+  const barEl  = document.getElementById('bar');
+  const pad = n => String(n).padStart(2, '0');
+  const dateFmt = new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  function tick() {
+    const d = new Date();
+    timeEl.innerHTML = `${pad(d.getHours())}<span class="colon">:</span>${pad(d.getMinutes())}<span class="sec">${pad(d.getSeconds())}</span>`;
+    dateEl.textContent = dateFmt.format(d);
+    barEl.style.width = ((d.getSeconds() + d.getMilliseconds() / 1000) / 60 * 100) + '%';
+  }
+  tick();
+  setInterval(tick, 250);
+
+  // ---------- Starfield ----------
+  const c = document.getElementById('space');
+  const ctx = c.getContext('2d');
+  let W, H, stars = [], dust = [], shooters = [];
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const mouse = { x: 0, y: 0 };
+  const palette = ['#ffffff', '#cfe8ff', '#ffe9c4', '#d9ccff', '#a8d8ff'];
+
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    c.width = W * DPR; c.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const count = Math.round(W * H / 2200);
+    stars = Array.from({ length: count }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      z: Math.random() ** 2 * 3 + .3,               // depth (parallax + size)
+      tw: Math.random() * Math.PI * 2,
+      ts: .5 + Math.random() * 2,
+      col: palette[(Math.random() * palette.length) | 0]
+    }));
+    dust = Array.from({ length: 60 }, () => ({
+      x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.5 + .5,
+      vx: (Math.random() - .5) * .15, vy: (Math.random() - .5) * .15
+    }));
+  }
+  addEventListener('resize', resize);
+  addEventListener('mousemove', e => { mouse.x = e.clientX / W - .5; mouse.y = e.clientY / H - .5; });
+  resize();
+
+  function spawnShooter() {
+    const fromLeft = Math.random() < .5;
+    shooters.push({
+      x: fromLeft ? Math.random() * W * .5 : W * .5 + Math.random() * W * .5,
+      y: Math.random() * H * .4,
+      vx: (fromLeft ? 1 : -1) * (8 + Math.random() * 6),
+      vy: 3 + Math.random() * 3,
+      life: 1
+    });
+  }
+
+  let px = 0, py = 0, t0 = performance.now();
+  function frame(now) {
+    const t = (now - t0) / 1000;
+    ctx.clearRect(0, 0, W, H);
+
+    // smooth parallax
+    px += (mouse.x - px) * .05; py += (mouse.y - py) * .05;
+
+    for (const s of stars) {
+      s.x -= s.z * .04;                              // slow cosmic drift
+      if (s.x < -5) s.x = W + 5;
+      const x = s.x - px * s.z * 25, y = s.y - py * s.z * 25;
+      const a = .45 + .55 * Math.sin(t * s.ts + s.tw) ** 2;
+      const r = s.z * .55;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = s.col;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      if (s.z > 2.6) {                                // bright stars get a cross flare
+        ctx.globalAlpha = a * .5;
+        ctx.fillRect(x - r * 5, y - .4, r * 10, .8);
+        ctx.fillRect(x - .4, y - r * 5, .8, r * 10);
+      }
+    }
+
+    // floating cosmic dust
+    for (const d of dust) {
+      d.x = (d.x + d.vx + W) % W; d.y = (d.y + d.vy + H) % H;
+      const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 6);
+      g.addColorStop(0, 'rgba(160,200,255,.35)'); g.addColorStop(1, 'rgba(160,200,255,0)');
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 6, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // shooting stars
+    if (Math.random() < .008) spawnShooter();
+    shooters = shooters.filter(s => s.life > 0);
+    for (const s of shooters) {
+      s.x += s.vx; s.y += s.vy; s.life -= .012;
+      const tail = 18;
+      const grad = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * tail, s.y - s.vy * tail);
+      grad.addColorStop(0, `rgba(255,255,255,${s.life})`);
+      grad.addColorStop(1, 'rgba(127,216,255,0)');
+      ctx.globalAlpha = 1; ctx.strokeStyle = grad; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * tail, s.y - s.vy * tail); ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>
